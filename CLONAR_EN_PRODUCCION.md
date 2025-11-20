@@ -1,45 +1,34 @@
-# Instrucciones para Clonar el Repositorio en Producción
+# Instrucciones para Configurar Git en la Carpeta de Producción
 
-Este documento contiene las instrucciones para clonar el repositorio `faryb-odoo` en el servidor de producción usando SSH.
+Este documento contiene las instrucciones para configurar el control de versiones Git en la carpeta de producción del mismo servidor donde está el desarrollo.
 
 ## Información del Repositorio
 
 - **Repositorio GitHub**: https://github.com/GabrielFerrin/faryb-odoo
 - **Rama de Producción**: `main`
 - **Rama de Desarrollo**: `gabriel`
-- **Método de Autenticación**: SSH Keys
+- **Método de Autenticación**: SSH Keys (reusando la misma clave del desarrollo)
 - **Usuario Git**: GabrielFerrin
 - **Email Git**: gabodesarrollo@gmail.com
 
+## Flujo de Trabajo
+
+1. **Desarrollo**: Trabajas en la carpeta de desarrollo, pruebas y haces commits
+2. **Push a GitHub**: Subes cambios a la rama `gabriel`
+3. **Merge en GitHub**: Fusionas `gabriel` → `main` en GitHub (pull request o merge directo)
+4. **Pull en Producción**: Desde la carpeta de producción, haces `git pull origin main`
+
 ## Pasos para Configurar en Producción
 
-### 1. Generar Clave SSH (si no existe)
+### 1. Verificar que la Clave SSH Existe (Reusar la del Desarrollo)
+
+Como ambos proyectos están en el mismo servidor, puedes reusar la misma clave SSH:
 
 ```bash
-ssh-keygen -t ed25519 -C "gabodesarrollo@gmail.com" -f ~/.ssh/id_ed25519
-```
+# Verificar que la clave SSH existe
+ls -la ~/.ssh/id_ed25519*
 
-Presiona Enter para aceptar la ubicación por defecto y deja la contraseña vacía (o configura una si prefieres).
-
-### 2. Mostrar la Clave Pública
-
-```bash
-cat ~/.ssh/id_ed25519.pub
-```
-
-**Copia toda la salida** que empieza con `ssh-ed25519` y termina con tu email.
-
-### 3. Agregar la Clave SSH a GitHub
-
-1. Ve a: https://github.com/settings/keys
-2. Click en el botón verde **"New SSH key"**
-3. En **Title**: escribe `Servidor Odoo Producción` (o el nombre que prefieras)
-4. En **Key**: pega la clave completa que copiaste en el paso 2
-5. Click en **"Add SSH key"**
-
-### 4. Verificar la Conexión SSH con GitHub
-
-```bash
+# Si existe, verificar la conexión con GitHub
 ssh -T git@github.com
 ```
 
@@ -48,63 +37,66 @@ Deberías ver un mensaje como:
 Hi GabrielFerrin! You've successfully authenticated, but GitHub does not provide shell access.
 ```
 
-### 5. Agregar GitHub a known_hosts (evita advertencias)
+**Nota**: Si la clave SSH ya está configurada en desarrollo, no necesitas generar una nueva. La misma clave funcionará para ambas carpetas.
+
+### 2. Navegar a la Carpeta de Producción
 
 ```bash
-ssh-keyscan github.com >> ~/.ssh/known_hosts
+# Ajusta la ruta según tu configuración
+cd /ruta/a/tu/carpeta/produccion/addons
 ```
 
-### 6. Clonar el Repositorio
+### 3. Inicializar el Repositorio Git (si no está inicializado)
 
 ```bash
-# Navegar al directorio donde quieres clonar (ajusta la ruta según tu configuración)
-cd /ruta/a/tu/directorio
-
-# Clonar el repositorio
-git clone git@github.com:GabrielFerrin/faryb-odoo.git addons
-
-# O si ya existe el directorio addons y quieres clonar ahí:
-cd /ruta/a/tu/directorio/addons
-git clone git@github.com:GabrielFerrin/faryb-odoo.git .
+# Si la carpeta NO tiene git inicializado:
+git init
 ```
 
-### 7. Configurar Usuario y Email (Solo para este Repositorio)
+### 4. Agregar el Repositorio Remoto
 
 ```bash
-cd /ruta/a/tu/directorio/addons
+git remote add origin git@github.com:GabrielFerrin/faryb-odoo.git
+
+# O si ya existe el remote, actualízalo:
+git remote set-url origin git@github.com:GabrielFerrin/faryb-odoo.git
+```
+
+### 5. Configurar Usuario y Email (Solo para este Repositorio)
+
+```bash
 git config user.name "GabrielFerrin"
 git config user.email "gabodesarrollo@gmail.com"
 ```
 
 **Nota**: Se usa `git config` sin `--global` para que solo aplique a este repositorio.
 
-### 8. Verificar que Estás en la Rama de Producción
+### 6. Traer el Código de la Rama de Producción
 
 ```bash
-cd /ruta/a/tu/directorio/addons
-git branch
-```
+# Traer todas las ramas del repositorio remoto
+git fetch origin
 
-Deberías ver `* main` (la rama de producción).
+# Cambiar a la rama main (producción)
+git checkout -b main origin/main
 
-Si estás en otra rama, cambia a main:
-
-```bash
+# O si ya existe la rama main local:
 git checkout main
+git pull origin main
 ```
 
-### 9. Verificar la Configuración
+### 7. Verificar la Configuración
 
 ```bash
-cd /ruta/a/tu/directorio/addons
 git status
 git remote -v
+git branch
 git config --local --list | grep -E "(user.name|user.email)"
 ```
 
 Deberías ver:
-- Estado limpio del repositorio
 - El remote `origin` apuntando a `git@github.com:GabrielFerrin/faryb-odoo.git`
+- Estar en la rama `main` (producción)
 - Usuario: `GabrielFerrin` y Email: `gabodesarrollo@gmail.com`
 
 ## Estructura de Ramas
@@ -120,9 +112,13 @@ Deberías ver:
 git status
 ```
 
-### Traer Cambios de la Rama de Producción
+### Traer Cambios de la Rama de Producción (Después de hacer merge en GitHub)
 
 ```bash
+# Asegúrate de estar en la rama main
+git checkout main
+
+# Traer los últimos cambios de GitHub
 git pull origin main
 ```
 
@@ -138,16 +134,26 @@ git log --oneline -10
 git branch -a
 ```
 
-### Cambiar a la Rama de Producción
+### Verificar que Estás en la Rama Correcta
 
 ```bash
-git checkout main
+git branch
 ```
+
+Deberías ver `* main` (la rama de producción).
 
 ### Ver la Configuración del Repositorio
 
 ```bash
 git config --local --list
+```
+
+### Ver los Últimos Cambios Antes de Hacer Pull
+
+```bash
+# Ver qué cambios hay en GitHub que no tienes localmente
+git fetch origin
+git log HEAD..origin/main --oneline
 ```
 
 ## Notas Importantes
@@ -156,18 +162,29 @@ git config --local --list
 
 2. **Configuración Local**: La configuración de usuario y email es solo para este repositorio, no afecta otros proyectos Git en el servidor.
 
-3. **SSH Keys**: Cada servidor debe tener su propia clave SSH agregada a GitHub. No compartas claves privadas entre servidores.
+3. **SSH Keys**: Como ambos proyectos (desarrollo y producción) están en el mismo servidor, puedes reusar la misma clave SSH. No necesitas generar una nueva.
 
-4. **Sincronización**: Para actualizar producción, usa `git pull origin main` desde la rama `main`.
+4. **Flujo de Trabajo**:
+   - Desarrollas y pruebas en la carpeta de desarrollo
+   - Haces `git push` a la rama `gabriel` desde desarrollo
+   - En GitHub, haces merge de `gabriel` → `main`
+   - En producción, haces `git pull origin main` para traer los cambios
 
-5. **Seguridad**: Nunca hagas commits directamente en producción. Los cambios deben venir de la rama de desarrollo mediante pull requests o merge.
+5. **Seguridad**: Nunca hagas commits directamente en producción. Los cambios deben venir de la rama de desarrollo mediante merge en GitHub.
+
+6. **Sincronización**: Para actualizar producción después de hacer merge en GitHub:
+   ```bash
+   cd /ruta/produccion/addons
+   git checkout main
+   git pull origin main
+   ```
 
 ## Solución de Problemas
 
 ### Error: "Permission denied (publickey)"
 
 - Verifica que la clave SSH esté agregada correctamente en GitHub
-- Verifica que la clave esté en `~/.ssh/id_ed25519.pub`
+- Verifica que la clave esté en `~/.ssh/id_ed25519` (misma clave que usas en desarrollo)
 - Prueba la conexión con: `ssh -T git@github.com`
 
 ### Error: "Host key verification failed"
@@ -176,14 +193,20 @@ git config --local --list
 
 ### Error: "fatal: not a git repository"
 
-- Asegúrate de estar en el directorio correcto donde clonaste el repositorio
+- Asegúrate de estar en el directorio correcto de producción
+- Si no está inicializado, ejecuta: `git init`
+
+### Error: "Your branch is behind 'origin/main'"
+
+- Esto es normal después de hacer merge en GitHub. Ejecuta: `git pull origin main`
 
 ### Verificar que la Clave SSH Está Configurada Correctamente
 
 ```bash
-# Ver el fingerprint de tu clave
+# Ver el fingerprint de tu clave (debe ser el mismo que en desarrollo)
 ssh-keygen -lf ~/.ssh/id_ed25519.pub
 
 # Comparar con el que aparece en GitHub (en la página de SSH keys)
+# Debe coincidir con la clave que usas en desarrollo
 ```
 
